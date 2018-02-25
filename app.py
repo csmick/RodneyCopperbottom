@@ -6,8 +6,7 @@ from flask import Flask, json, request
 app = Flask(__name__)
 
 # get config variables
-json_config = requests.get('https://api.heroku.com/apps/rodney-copperbottom/config-vars').json()
-config = json.loads(json_config)
+config = requests.get('https://api.heroku.com/apps/rodney-copperbottom/config-vars').json()
 
 # instantiate chat bots
 groupme_bot = Groupme_bot(config.BOT_ID)
