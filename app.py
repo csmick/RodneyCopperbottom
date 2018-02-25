@@ -10,7 +10,7 @@ BOT_ID = os.environ['BOT_ID']
 GROUP_ID = os.environ['GROUP_ID']
 
 # instantiate chat bots
-groupme_bot = Groupme_bot(BOT_ID)
+groupme_bot = Groupme_bot(BOT_ID, GROUP_ID)
 
 @app.route("/")
 def hello():
