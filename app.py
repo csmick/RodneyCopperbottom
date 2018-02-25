@@ -1,12 +1,16 @@
-import config
+import requests
 from groupme_bot import Groupme_bot
 from flask import Flask, json, request
 
 # initialize Flask app
 app = Flask(__name__)
 
+# get config variables
+json_config = requests.get('https://api.heroku.com/apps/rodney-copperbottom/config-vars').json()
+config = json.loads(json_config)
+
 # instantiate chat bots
-groupme_bot = Groupme_bot(config.bot_id)
+groupme_bot = Groupme_bot(config.BOT_ID)
 
 @app.route("/")
 def hello():
@@ -17,6 +21,6 @@ def groupme_callback():
     json_body = request.get_json()
     group_id = json_body['group_id']
     message = json_body['text']
-    if group_id == config.group_id and groupme_bot.is_command(message):
+    if group_id == config.GROUP_ID and groupme_bot.is_command(message):
         command, args = groupme_bot.parse_message(message)
         groupme_bot.send_message("Command: {}\nArgs: {}".format(command, args));
