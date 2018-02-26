@@ -11,11 +11,11 @@ class Groupme_bot(object):
             self.d = {}
             self.d['attachments'] = []
 
-        def bot_id(self, bot_id):
-            self.d['bot_id'] = bot_id
-
         def text(self, t):
             self.d['text'] = t
+
+        def mention(self, uids):
+            self.d['attachments'].append({'type':'mentions', 'user_ids':uids,})
 
         def to_dict(self):
             return self.d
@@ -23,6 +23,9 @@ class Groupme_bot(object):
     def __init__(self, bot_id, group_id):
         self.bot_id = bot_id
         self.group_id = group_id
+        self.POST_URL = 'https://api.groupme.com/v3/bots/post'
+        self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
+        self.functions = {}
 
     def is_command(self, m):
         return m.startswith('!')
@@ -32,6 +35,12 @@ class Groupme_bot(object):
         l = shlex.split(m)
         return (l[0], l[1:])
 
-    def send_message(self, text):
-        message = Message_builder().bot_id(self.bot_id).text(text).to_dict()
-        requests.post('https://api.groupme.com/v3/bots/post', json=message)
+    def send_message(self, m):
+        m['bot_id'] = self.bot_id
+        requests.post(self.POST_URL, json=m)
+
+    def notify_all(self):
+        members = requests.get(GROUP_URL)['members']
+        uids = map(lambda x: x['user_id'], members)
+        message = Message_builder().mention(uids)
+        self.send_message(message)
