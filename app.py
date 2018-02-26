@@ -20,7 +20,7 @@ def hello():
 def groupme_callback():
     json_body = request.get_json()
     message = json_body['text']
-    if json_body['group_id'] == GROUP_ID 
+    if json_body['group_id'] == GROUP_ID:
         if groupme_bot.is_command(message):
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
