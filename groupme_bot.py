@@ -5,21 +5,6 @@ import shlex
 
 class Groupme_bot(object):
 
-    class Message_builder(object):
-
-        def __init__(self):
-            self.d = {}
-            self.d['attachments'] = []
-
-        def text(self, t):
-            self.d['text'] = t
-
-        def mention(self, uids):
-            self.d['attachments'].append({'type':'mentions', 'user_ids':uids,})
-
-        def to_dict(self):
-            return self.d
-
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
         self.group_id = group_id
@@ -42,9 +27,8 @@ class Groupme_bot(object):
 
     def notify_all(self):
         auth = {'token':self.auth_token}
-        json_body = requests.get(self.GROUP_URL, params=auth).json()['response']
-        print(json_body)
-        members = json_body['members']
+        members = requests.get(self.GROUP_URL, params=auth).json()['response']['members']
         uids = map(lambda x: x['user_id'], members)
-        message = Message_builder().mention(uids)
+        print(uids)
+        message = {'bot_id':self.bot_id, 'attachments':[{'type':'mentions', 'user_ids':uids}]}
         self.send_message(message)
