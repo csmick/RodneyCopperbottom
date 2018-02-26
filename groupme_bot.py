@@ -28,7 +28,13 @@ class Groupme_bot(object):
     def notify_all(self):
         auth = {'token':self.auth_token}
         members = requests.get(self.GROUP_URL, params=auth).json()['response']['members']
-        uids = list(map(lambda x: x['user_id'], members))
-        print(uids)
-        message = {'bot_id':self.bot_id, 'attachments':[{'type':'mentions', 'user_ids':uids}]}
+        uids = []
+        nicknames = []
+        for member in members:
+            uids.append(member['user_id'])
+            nicknames.append(member['nickname'])
+        text = ''
+        for nickname in nicknames:
+            text += ('@' + nickname + ' ')
+        message = {'bot_id':self.bot_id, 'attachments':[{'type':'mentions', 'user_ids':uids}], 'text':text[:-1]}
         self.send_message(message)
