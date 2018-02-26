@@ -42,7 +42,9 @@ class Groupme_bot(object):
 
     def notify_all(self):
         auth = {'token':self.auth_token}
-        members = requests.get(self.GROUP_URL, params=auth).json()['members']
+        json_body = requests.get(self.GROUP_URL, params=auth).json()
+        print(json_body)
+        members = json_body['members']
         uids = map(lambda x: x['user_id'], members)
         message = Message_builder().mention(uids)
         self.send_message(message)
