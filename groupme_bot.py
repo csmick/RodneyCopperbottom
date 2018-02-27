@@ -5,6 +5,21 @@ import shlex
 
 class Groupme_bot(object):
 
+    class Message(object):
+
+        def __init__(self, text=''):
+            self.text = text
+            self.attachments = []
+
+        def text(self, t):
+            self.text = t
+
+        def mention(self, uids):
+            self.attachments.append({'type':'mentions', 'user_ids':uids})
+
+        def to_dict(self):
+            return {'attachments':self.attachments, 'text':text}
+
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
         self.group_id = group_id
@@ -36,5 +51,5 @@ class Groupme_bot(object):
         text = ''
         for nickname in nicknames:
             text += ('@' + nickname + ' ')
-        message = {'bot_id':self.bot_id, 'attachments':[{'type':'mentions', 'user_ids':uids}], 'text':text[:-1]}
+        message = Message().text(text[:-1]).mention(uids)
         self.send_message(message)
