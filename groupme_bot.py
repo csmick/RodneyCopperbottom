@@ -20,7 +20,7 @@ class Groupme_bot(object):
             return self
 
         def to_dict(self):
-            return {'attachments':self.attachments, 'text':self.text}
+            return {'attachments':self.attachments, 'text':self.t}
 
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
