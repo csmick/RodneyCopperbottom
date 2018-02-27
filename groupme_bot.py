@@ -51,5 +51,5 @@ class Groupme_bot(object):
         text = ''
         for nickname in nicknames:
             text += ('@' + nickname + ' ')
-        message = Message().text(text[:-1]).mention(uids)
+        message = self.Message().text(text[:-1]).mention(uids)
         self.send_message(message)
