@@ -13,12 +13,14 @@ class Groupme_bot(object):
 
         def text(self, t):
             self.text = t
+            return self
 
         def mention(self, uids):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
+            return self
 
         def to_dict(self):
-            return {'attachments':self.attachments, 'text':text}
+            return {'attachments':self.attachments, 'text':self.text}
 
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
@@ -51,5 +53,6 @@ class Groupme_bot(object):
         message_text = ''
         for nickname in nicknames:
             message_text += ('@' + nickname + ' ')
-        message = self.Message().text(message_text[:-1]).mention(uids)
-        self.send_message(message)
+        message = self.Message()
+        message.text(message_text[:-1]).mention(uids)
+        self.send_message(message.to_dict())
