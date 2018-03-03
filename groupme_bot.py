@@ -70,7 +70,7 @@ class Groupme_bot(object):
         character = args[0]
         if character and character not in self.prequel_quotes.keys():
             message = self.Message()
-            message.text('No quotes from {}. Here is the list of characters for whom we have quotes:\n{}'.format(character, '\n'.join(self.prequel_quotes.keys())))
+            message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(self.prequel_quotes.keys())))
             self.send_message(message.to_dict())
             return
         elif not character:
