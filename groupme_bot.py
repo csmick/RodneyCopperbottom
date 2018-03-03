@@ -67,8 +67,7 @@ class Groupme_bot(object):
         self.send_message(message.to_dict())
 
     def get_prequel_quote(self, args):
-        if args:
-            character = args[0]
+        character = args[0] if args else ''
         if character and character not in self.prequel_quotes.keys():
             message = self.Message()
             message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(sorted(self.prequel_quotes.keys()))))
