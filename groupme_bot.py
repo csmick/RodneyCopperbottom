@@ -50,13 +50,13 @@ class Groupme_bot(object):
         m['bot_id'] = self.bot_id
         requests.post(self.POST_URL, json=m)
 
-    def notify_all(self, notify_muted=True):
+    def notify_all(self, sender_id, notify_muted=True):
         auth = {'token':self.auth_token}
         members = requests.get(self.GROUP_URL, params=auth).json()['response']['members']
         uids = []
         nicknames = []
         for member in members:
-            if notify_muted or member['muted'] == False:
+            if member['user_id'] != sender_id and (notify_muted or member['muted'] == False):
                 uids.append(member['user_id'])
                 nicknames.append(member['nickname'])
         message_text = ''
@@ -70,7 +70,7 @@ class Groupme_bot(object):
         character = args[0]
         if character and character not in self.prequel_quotes.keys():
             message = self.Message()
-            message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(self.prequel_quotes.keys())))
+            message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(sorted(self.prequel_quotes.keys()))))
             self.send_message(message.to_dict())
             return
         elif not character:

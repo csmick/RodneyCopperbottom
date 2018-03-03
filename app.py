@@ -27,7 +27,7 @@ def groupme_callback():
             if command in groupme_bot.functions.keys():
                 groupme_bot.functions[command](args)
         if "@everyone" in message:
-            groupme_bot.notify_all()
+            groupme_bot.notify_all(json_body['sender_id'])
         elif "@unmuted" in message:
-            groupme_bot.notify_all(notify_muted=False)
+            groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
     return ''
