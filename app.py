@@ -30,3 +30,4 @@ def groupme_callback():
             groupme_bot.notify_all()
         elif "@unmuted" in message:
             groupme_bot.notify_all(notify_muted=False)
+    return
