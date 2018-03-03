@@ -2,6 +2,7 @@
 
 import requests
 import shlex
+from collections import defaultdict
 
 class Groupme_bot(object):
 
@@ -28,7 +29,13 @@ class Groupme_bot(object):
         self.auth_token = auth_token
         self.POST_URL = 'https://api.groupme.com/v3/bots/post'
         self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
-        self.functions = {}
+        self.functions = {'prequel_quote':self.get_prequel_quote}
+        self.prequel_quotes = collections.defaultdict(list)
+        with open('./data/prequel_quotes.csv') as f:
+            for line in f:
+                line = line.strip()
+                character, quote = line.split(',', 1)
+                self.prequel_quotes[character].append(quote)
 
     def is_command(self, m):
         return m.startswith('!')
@@ -56,5 +63,17 @@ class Groupme_bot(object):
             message_text += ('@' + nickname + ' ')
         message = self.Message()
         message.text(message_text[:-1]).mention(uids)
-        print(message.to_dict())
+        self.send_message(message.to_dict())
+
+    def get_prequel_quote(self, character=''):
+        if character and character not in self.prequel_quotes.keys():
+            return
+        elif not character:
+            characters = list(self.prequel_quotes.keys())
+            character_index = randrange(0, len(characters))
+            character = characters[character_index]
+        quote_index = randrange(0, len(self.prequel_quotes[character]))
+        quote = self.prequel_quotes[character][quote_index]
+        message = self.Message()
+        message.text('{} -{}'.format(quote, character))
         self.send_message(message.to_dict())
