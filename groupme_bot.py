@@ -30,7 +30,7 @@ class Groupme_bot(object):
         self.POST_URL = 'https://api.groupme.com/v3/bots/post'
         self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'prequel_quote':self.get_prequel_quote}
-        self.prequel_quotes = collections.defaultdict(list)
+        self.prequel_quotes = defaultdict(list)
         with open('./data/prequel_quotes.csv') as f:
             for line in f:
                 line = line.strip()
