@@ -37,6 +37,11 @@ class Groupme_bot(object):
                 line = line.strip()
                 character, quote = line.split(',', 1)
                 self.prequel_quotes[character].append(quote)
+		self.spammer_berates = list()
+		with open('./data/spammer_berates.csv') as f:
+			for line in f:
+				berate = line.strip()
+				self.spammer_berates.append(berate)
 
     def is_command(self, m):
         return m.startswith('!')
@@ -82,3 +87,11 @@ class Groupme_bot(object):
         message = self.Message()
         message.text('{} -{}'.format(quote, character))
         self.send_message(message.to_dict())
+
+	def spammer_berate(self, spammer, uid):
+		berate_index = randrange(0, len(self.spammer_berates))
+		berate = self.spammer_berates[berate_index]
+		message_text = '@' + spammer + ' ' + berate 
+		message = self.Message()
+		message.text(message_text[:-1]).mention(uid)
+		self.send_message(message.to_dict())
