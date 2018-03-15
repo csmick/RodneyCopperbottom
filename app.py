@@ -43,7 +43,7 @@ def groupme_callback():
 	else:
 		last_uid, last_timestamp = timestamped_uids.queue.get()
 		if uid == last_uid: 		 
-     		timestamped_uids.queue.put((uid, timestamp)) 
+     			timestamped_uids.queue.put((uid, timestamp)) 
 		if timestamped_uids.queue.qsize() >= 3:
 			first_timestamp, uid = timestamped_uids.queue.get()
 			time = timestamp - first_timestamp
