@@ -1,4 +1,4 @@
-import os, Queue
+import os, queue
 from groupme_bot import GroupmeBot
 from flask import Flask, json, request
 
@@ -36,7 +36,7 @@ def groupme_callback():
         elif "@unmuted" in message:
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
-        if timestamped_uids.queue.empty():
+        if timestamped_uids.queue.qsize() == 0:
             timestamped_uids.queue.put((uid, timestamp))
         else:
             last_uid, last_timestamp = timestamped_uids.queue.get()
