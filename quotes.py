@@ -23,20 +23,8 @@ class QuoteService(object):
     def list_speakers(self, topic):
         return list(self.quotes[topic].keys())
 
-    def get_quote(self, args):
-        topic = args[0] if args else None
-        speaker = args[1] if 1 < len(args) else None
-        if topic in self.list_topics():
-            if speaker:
-                if speaker not in self.list_speakers(topic):
-                    return 'Available speakers: {}'.format(','.join(map(str, sorted(self.list_speakers(topic)))))
-            else:
-                speakers = self.list_speakers(topic)
-                speaker_index = randrange(0, len(speakers))
-                speaker = speakers[speaker_index]
-            quote_index = randrange(0, len(self.quotes[topic][speaker]))
-            quote = self.quotes[topic][speaker][quote_index]
-            return (speaker, quote)
-        else:
-            return 'Available topics: {}'.format(','.join(map(str, sorted(self.list_topics()))))
+    def get_quote(self, topic, speaker):
+        quote_index = randrange(0, len(self.quotes[topic][speaker]))
+        quote = self.quotes[topic][speaker][quote_index]
+        return (speaker, quote)
 

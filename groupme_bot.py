@@ -59,7 +59,23 @@ class GroupmeBot(object):
         self.send_message(message)
 
     def quotes_callback(self, args):
-        speaker, quote = self.quote_service.get_quote(args)
+        topic = args[0] if args else None
+        speaker = args[1] if 1 < len(args) else None
+        if topic in self.quote_service.list_topics():
+            if speaker:
+                if speaker not in self.quote_service.list_speakers(topic):
+                    message = self.Message('Available speakers: {}'.format(','.join(map(str, sorted(self.quote_service.list_speakers(topic))))))
+                    self.send_message(message)
+                    return
+            else:
+                speakers = self.quote_service.list_speakers(topic)
+                speaker_index = randrange(0, len(speakers))
+                speaker = speakers[speaker_index]
+        else:
+            message = self.Message('Available topics: {}'.format(','.join(map(str, sorted(self.quote_service.list_topics())))))
+            self.send_message(message)
+            return
+        speaker, quote = self.quote_service.get_quote(topic, speaker)
         message = self.Message('{} -{}'.format(quote, speaker))
         self.send_message(message) 
  
