@@ -1,10 +1,9 @@
-import os, queue
+import os, Queue
 from groupme_bot import GroupmeBot
 from flask import Flask, json, request
 
 # timestamped messages queue
 timestamped_uids = queue.Queue()
-
 
 # initialize Flask app
 app = Flask(__name__)
