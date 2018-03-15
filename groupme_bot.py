@@ -10,16 +10,11 @@ class GroupmeBot(object):
     class Message(object):
 
         def __init__(self, text=''):
-            self.t = text
+            self.text = text
             self.attachments = []
-
-        def text(self, text):
-            self.t = text
-            return self
 
         def mention(self, uids):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
-            return self
 
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
@@ -59,20 +54,19 @@ class GroupmeBot(object):
         message_text = ''
         for nickname in nicknames:
             message_text += ('@' + nickname + ' ')
-        message = self.Message()
-        message.text(message_text[:-1]).mention(uids)
+        message = self.Message(message_text[:-1])
+        message.mention(uids)
         self.send_message(message)
 
     def quotes_callback(self, args):
         speaker, quote = self.quote_service.get_quote(args)
-        message = self.Message()
-        message.text('{} -{}'.format(quote, speaker))
+        message = self.Message('{} -{}'.format(quote, speaker))
         self.send_message(message) 
  
     def spammer_berate(self, spammer, uid):
         berate_index = randrange(0, len(self.spammer_berates))
         berate = self.spammer_berates[berate_index]
         message_text = '@' + spammer + ' ' + berate 
-        message = self.Message()
-        message.text(message_text).mention(uid)
+        message = self.Message(message_text)
+        message.mention(uid)
         self.send_message(message)
