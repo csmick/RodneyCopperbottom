@@ -24,11 +24,11 @@ def hello():
 @app.route('/groupme', methods=['POST'])
 def groupme_callback():
     json_body = request.get_json()
-	uid = json_body['sender_id']
-	timestamp = json_body['created_at']
+    uid = json_body['sender_id']
+    timestamp = json_body['created_at']
     message = json_body['text'].replace('“','"').replace('”','"')
     if json_body['group_id'] == GROUP_ID:
-	if groupme_bot.is_command(message):
+        if groupme_bot.is_command(message):
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
                 groupme_bot.functions[command](args)
@@ -37,20 +37,19 @@ def groupme_callback():
         elif "@unmuted" in message:
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
-	if timestamped_uids.queue.empty():
-		timestamped_uids.queue.put((uid, timestamp))
-		return ''
-	else:
-		last_uid, last_timestamp = timestamped_uids.queue.get()
-		if uid == last_uid: 		 
-     			timestamped_uids.queue.put((uid, timestamp)) 
-		if timestamped_uids.queue.qsize() >= 3:
-			first_timestamp, uid = timestamped_uids.queue.get()
-			time = timestamp - first_timestamp
-			if time < 30:
-				spammer = json_body['name']
-				groupme_bot.spammer_berate(spammer, uid)	 								 
-		else:
-			timestamped_uids.queue.clear()   
+        if timestamped_uids.queue.empty():
+            timestamped_uids.queue.put((uid, timestamp))
+        else:
+            last_uid, last_timestamp = timestamped_uids.queue.get()
+            if uid == last_uid:
+                timestamped_uids.queue.put((uid, timestamp))
+            if timestamped_uids.queue.qsize() >= 3:
+                first_timestamp, uid = timestamped_uids.queue.get()
+                time = timestamp - first_timestamp
+                if time < 30:
+                    spammer = json_body['name']
+                    groupme_bot.spammer_berate(spammer, uid)
+            else:
+                timestamped_uids.queue.clear()
 
     return ''
