@@ -28,7 +28,7 @@ def groupme_callback():
 	timestamp = json_body['created_at']
     message = json_body['text'].replace('“','"').replace('”','"')
     if json_body['group_id'] == GROUP_ID:
-		if groupme_bot.is_command(message):
+	if groupme_bot.is_command(message):
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
                 groupme_bot.functions[command](args)
