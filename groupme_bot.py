@@ -2,10 +2,10 @@
 
 import requests
 import shlex
-from collections import defaultdict
 from random import randrange
+from quotes import QuoteService
 
-class Groupme_bot(object):
+class GroupmeBot(object):
 
     class Message(object):
 
@@ -21,22 +21,14 @@ class Groupme_bot(object):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
             return self
 
-        def to_dict(self):
-            return {'attachments':self.attachments, 'text':self.t}
-
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
         self.group_id = group_id
         self.auth_token = auth_token
         self.POST_URL = 'https://api.groupme.com/v3/bots/post'
         self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
-        self.functions = {'prequel_quote':self.get_prequel_quote}
-        self.prequel_quotes = defaultdict(list)
-        with open('./data/prequel_quotes.csv') as f:
-            for line in f:
-                line = line.strip()
-                character, quote = line.split(',', 1)
-                self.prequel_quotes[character].append(quote)
+        self.functions = {'quotes':self.quotes_callback}
+        self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
         with open('./data/spammer_berates.csv') as f:
             for line in f:
@@ -52,8 +44,8 @@ class Groupme_bot(object):
         return (l[0], l[1:])
 
     def send_message(self, m):
-        m['bot_id'] = self.bot_id
-        requests.post(self.POST_URL, json=m)
+        m.bot_id = self.bot_id
+        requests.post(self.POST_URL, json=vars(m))
 
     def notify_all(self, sender_id, notify_muted=True):
         auth = {'token':self.auth_token}
@@ -69,29 +61,18 @@ class Groupme_bot(object):
             message_text += ('@' + nickname + ' ')
         message = self.Message()
         message.text(message_text[:-1]).mention(uids)
-        self.send_message(message.to_dict())
+        self.send_message(message)
 
-    def get_prequel_quote(self, args):
-        character = args[0] if args else ''
-        if character and character not in self.prequel_quotes.keys():
-            message = self.Message()
-            message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(sorted(self.prequel_quotes.keys()))))
-            self.send_message(message.to_dict())
-            return
-        elif not character:
-            characters = list(self.prequel_quotes.keys())
-            character_index = randrange(0, len(characters))
-            character = characters[character_index]
-        quote_index = randrange(0, len(self.prequel_quotes[character]))
-        quote = self.prequel_quotes[character][quote_index]
+    def quotes_callback(self, args):
+        speaker, quote = self.quote_service.get_quote(args)
         message = self.Message()
-        message.text('{} -{}'.format(quote, character))
-        self.send_message(message.to_dict())
-
+        message.text('{} -{}'.format(quote, speaker))
+        self.send_message(message) 
+ 
     def spammer_berate(self, spammer, uid):
         berate_index = randrange(0, len(self.spammer_berates))
         berate = self.spammer_berates[berate_index]
         message_text = '@' + spammer + ' ' + berate 
         message = self.Message()
-        message.text(message_text[:-1]).mention(uid)
-        self.send_message(message.to_dict())
+        message.text(message_text).mention(uid)
+        self.send_message(message)

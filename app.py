@@ -1,5 +1,5 @@
 import os, queue
-from groupme_bot import Groupme_bot
+from groupme_bot import GroupmeBot
 from flask import Flask, json, request
 
 # timestamped messages queue
@@ -15,7 +15,7 @@ GROUP_ID = os.environ['GROUP_ID']
 AUTH_TOKEN = os.environ['AUTH_TOKEN']
 
 # instantiate chat bots
-groupme_bot = Groupme_bot(BOT_ID, GROUP_ID, AUTH_TOKEN)
+groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN)
 
 @app.route("/")
 def hello():
