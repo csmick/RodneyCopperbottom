@@ -37,18 +37,18 @@ def groupme_callback():
         elif "@unmuted" in message:
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
-        if not timestamped_uids.deque:
-            timestamped_uids.deque.put((uid, timestamp))
+        if not timestamped_uids:
+            timestamped_uids.append((uid, timestamp))
         else:
-            first_uid, first_timestamp = timestamped_uids.deque[0]
+            first_uid, first_timestamp = timestamped_uids[0]
             if uid == first_uid:
-                timestamped_uids.deque.append((uid, timestamp))
-            if timestamped_uids.deque.len() >= 3:
+                timestamped_uids.append((uid, timestamp))
+            if timestamped_uids.len() >= 3:
                 time = timestamp - first_timestamp
                 if time < 30:
                     spammer = json_body['name']
                     groupme_bot.spammer_berate(spammer, uid)
             else:
-                timestamped_uids.deque.clear()
+                timestamped_uids.clear()
 
     return ''
