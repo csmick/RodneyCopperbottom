@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import os
-from collections import defaultdict
 from random import randrange
 
 class QuoteService(object):
@@ -10,12 +9,14 @@ class QuoteService(object):
         self.quotes = {}
         for fname in os.listdir(root):
             topic, ext = os.path.splitext(fname)
-            self.quotes[topic] = defaultdict(list)
+            self.quotes[topic] = {}
             with open(os.path.join(root, fname)) as f:
                 for line in f:
                     line = line.strip()
-                    character, quote = line.split(',', 1)
-                    self.quotes[topic][character].append(quote)
+                    speaker, quote = line.split(',', 1)
+                    if speaker not in self.quotes[topic].keys():
+                        self.quotes[topic][speaker] = []
+                    self.quotes[topic][speaker].append(quote)
 
     def list_topics(self):
         return list(self.quotes.keys())
