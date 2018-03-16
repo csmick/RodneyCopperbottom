@@ -1,9 +1,10 @@
-import os, queue
+import os
+from collections import deque
 from groupme_bot import GroupmeBot
 from flask import Flask, json, request
 
 # timestamped messages queue
-timestamped_uids = queue.Queue()
+timestamped_uids = deque()
 
 # initialize Flask app
 app = Flask(__name__)
@@ -36,19 +37,18 @@ def groupme_callback():
         elif "@unmuted" in message:
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
-        if timestamped_uids.queue.qsize() == 0:
-            timestamped_uids.queue.put((uid, timestamp))
+        if not timestamped_uids.deque:
+            timestamped_uids.deque.put((uid, timestamp))
         else:
-            last_uid, last_timestamp = timestamped_uids.queue.get()
-            if uid == last_uid:
-                timestamped_uids.queue.put((uid, timestamp))
-            if timestamped_uids.queue.qsize() >= 3:
-                first_timestamp, uid = timestamped_uids.queue.get()
+            first_uid, first_timestamp = timestamped_uids.deque[0]
+            if uid == first_uid:
+                timestamped_uids.deque.append((uid, timestamp))
+            if timestamped_uids.deque.len() >= 3:
                 time = timestamp - first_timestamp
                 if time < 30:
                     spammer = json_body['name']
                     groupme_bot.spammer_berate(spammer, uid)
             else:
-                timestamped_uids.queue.clear()
+                timestamped_uids.deque.clear()
 
     return ''
