@@ -38,7 +38,7 @@ def groupme_callback():
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
         if not timestamped_uids:
-			print((uid, timestamp))
+            print((uid, timestamp))
             timestamped_uids.append((uid, timestamp))
         else:
             first_uid, first_timestamp = timestamped_uids[0]
