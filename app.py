@@ -39,10 +39,11 @@ def groupme_callback():
 
         if not timestamped_uids:
             timestamped_uids.append((uid, timestamp))
+            print("queue empty, add to queue: "+str(len(timestamped_uids)))
         else:
             first_uid, first_timestamp = timestamped_uids[0]
             if uid == first_uid:
-                print("add to queue")
+                print("add to queue: "+str(len(timestamped_uids)))
                 timestamped_uids.append((uid, timestamp))
             if len(timestamped_uids) >= 3:
                 print("berate")
