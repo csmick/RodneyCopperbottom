@@ -88,4 +88,5 @@ class GroupmeBot(object):
         uids = []
         uids.append(uid)
         message.mention(uids)
+        print(vars(message))
         self.send_message(message)
