@@ -82,7 +82,7 @@ class GroupmeBot(object):
     def spammer_berate(self, spammer, uid):
         berate_index = randrange(0, len(self.spammer_berates))
         berate = self.spammer_berates[berate_index]
-		print(berate)
+        print(berate)
         message_text = '@' + spammer + ' ' + berate 
         message = self.Message(message_text)
         message.mention(uid)
