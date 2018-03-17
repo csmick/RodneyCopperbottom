@@ -85,5 +85,7 @@ class GroupmeBot(object):
         message_text = '@' + spammer + ' ' + berate
         print(message_text)
         message = self.Message(message_text)
-        message.mention(uid)
+        uids = []
+        uids.append(uid)
+        message.mention(uids)
         self.send_message(message)
