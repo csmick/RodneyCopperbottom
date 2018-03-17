@@ -38,8 +38,8 @@ def groupme_callback():
             groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
 
         if not timestamped_uids:
-            timestamped_uids.append((uid, timestamp))
             print("queue empty, add to queue: "+str(len(timestamped_uids)))
+            timestamped_uids.append((uid, timestamp))
         else:
             first_uid, first_timestamp = timestamped_uids[0]
             if uid == first_uid:
