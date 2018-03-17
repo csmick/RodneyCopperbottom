@@ -42,10 +42,10 @@ def groupme_callback():
         else:
             first_uid, first_timestamp = timestamped_uids[0]
             if uid == first_uid:
-				print("add to queue")
+                print("add to queue")
                 timestamped_uids.append((uid, timestamp))
             if len(timestamped_uids) >= 3:
-				print("berate")
+                print("berate")
                 time = timestamp - first_timestamp
                 if time < 30:
                     spammer = json_body['name']
