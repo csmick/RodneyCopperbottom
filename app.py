@@ -51,7 +51,7 @@ def groupme_callback():
                     spammer = json_body['name']
                     groupme_bot.spammer_berate(spammer, uid)
             else:
-                print("clearing:" len(timestamped_uids))
+                print("clearing:"+str(len(timestamped_uids)))
                 timestamped_uids.clear()
 
     return ''
