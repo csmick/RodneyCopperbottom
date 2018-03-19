@@ -2,27 +2,19 @@
 
 import requests
 import shlex
-from collections import defaultdict
 from random import randrange
+from quotes import QuoteService
 
-class Groupme_bot(object):
+class GroupmeBot(object):
 
     class Message(object):
 
         def __init__(self, text=''):
-            self.t = text
+            self.text = text
             self.attachments = []
-
-        def text(self, text):
-            self.t = text
-            return self
 
         def mention(self, uids):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
-            return self
-
-        def to_dict(self):
-            return {'attachments':self.attachments, 'text':self.t}
 
     def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
@@ -30,13 +22,13 @@ class Groupme_bot(object):
         self.auth_token = auth_token
         self.POST_URL = 'https://api.groupme.com/v3/bots/post'
         self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
-        self.functions = {'prequel_quote':self.get_prequel_quote}
-        self.prequel_quotes = defaultdict(list)
-        with open('./data/prequel_quotes.csv') as f:
+        self.functions = {'quotes':self.quotes_callback}
+        self.quote_service = QuoteService('./data/quotes')
+        self.spammer_berates = list()
+        with open('./data/spammer_berates.csv') as f:
             for line in f:
-                line = line.strip()
-                character, quote = line.split(',', 1)
-                self.prequel_quotes[character].append(quote)
+                berate = line.strip()
+                self.spammer_berates.append(berate)
 
     def is_command(self, m):
         return m.startswith('!')
@@ -47,8 +39,8 @@ class Groupme_bot(object):
         return (l[0], l[1:])
 
     def send_message(self, m):
-        m['bot_id'] = self.bot_id
-        requests.post(self.POST_URL, json=m)
+        m.bot_id = self.bot_id
+        requests.post(self.POST_URL, json=vars(m))
 
     def notify_all(self, sender_id, notify_muted=True):
         auth = {'token':self.auth_token}
@@ -62,23 +54,37 @@ class Groupme_bot(object):
         message_text = ''
         for nickname in nicknames:
             message_text += ('@' + nickname + ' ')
-        message = self.Message()
-        message.text(message_text[:-1]).mention(uids)
-        self.send_message(message.to_dict())
+        message = self.Message(message_text[:-1])
+        message.mention(uids)
+        self.send_message(message)
 
-    def get_prequel_quote(self, args):
-        character = args[0] if args else ''
-        if character and character not in self.prequel_quotes.keys():
-            message = self.Message()
-            message.text('No quotes from \"{}\". Here is the list of characters for whom we have quotes:\n    {}'.format(character, '\n    '.join(sorted(self.prequel_quotes.keys()))))
-            self.send_message(message.to_dict())
+    def quotes_callback(self, args):
+        topic = args[0] if args else None
+        speaker = args[1] if 1 < len(args) else None
+        if topic in self.quote_service.list_topics():
+            if speaker:
+                if speaker not in self.quote_service.list_speakers(topic):
+                    message = self.Message('Available speakers: {}'.format(', '.join(map(str, sorted(self.quote_service.list_speakers(topic))))))
+                    self.send_message(message)
+                    return
+            else:
+                speakers = self.quote_service.list_speakers(topic)
+                speaker_index = randrange(0, len(speakers))
+                speaker = speakers[speaker_index]
+        else:
+            message = self.Message('Available topics: {}'.format(', '.join(map(str, sorted(self.quote_service.list_topics())))))
+            self.send_message(message)
             return
-        elif not character:
-            characters = list(self.prequel_quotes.keys())
-            character_index = randrange(0, len(characters))
-            character = characters[character_index]
-        quote_index = randrange(0, len(self.prequel_quotes[character]))
-        quote = self.prequel_quotes[character][quote_index]
-        message = self.Message()
-        message.text('{} -{}'.format(quote, character))
-        self.send_message(message.to_dict())
+        speaker, quote = self.quote_service.get_quote(topic, speaker)
+        message = self.Message('{} -{}'.format(quote, speaker))
+        self.send_message(message) 
+ 
+    def spammer_berate(self, spammer, uid):
+        berate_index = randrange(0, len(self.spammer_berates))
+        berate = self.spammer_berates[berate_index]
+        message_text = '@' + spammer + ' ' + berate
+        message = self.Message(message_text)
+        uids = []
+        uids.append(uid)
+        message.mention(uids)
+        self.send_message(message)
