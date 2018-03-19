@@ -50,5 +50,6 @@ def groupme_callback():
                         groupme_bot.spammer_berate(spammer, uid)
             else:
                 timestamped_uids.clear()
+                timestamped_uids.append((uid, timestamp))
 
     return ''
