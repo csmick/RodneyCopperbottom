@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import os
-import re
 from collections import deque
 from groupme_bot import GroupmeBot
 from flask import Flask, json, request
@@ -21,9 +20,6 @@ DATABASE_URL = os.environ['DATABASE_URL']
 # instantiate chat bots
 groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN, DATABASE_URL)
 
-# initialize global variables
-MENTION_PATTERN = re.compile('@\w+')
-
 @app.route("/")
 def hello():
     return "Hello World!"
@@ -38,10 +34,11 @@ def groupme_callback():
         if groupme_bot.is_command(message):
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
-                groupme_bot.functions[command](args)
+                attachments = json_body['attachments'] if 'attachments' in json_body.keys() else []
+                groupme_bot.functions[command](args, attachments)
 
         # check for custom group mentions
-        mentions = MENTION_PATTERN.findall(message)
+        mentions = groupme_bot.mention_patern.findall(message)
         if(mentions):
             custom_groups = tuple(filter(lambda x: x in groupme_bot.groups, map(lambda x: x[1:], mentions)))
             groupme_bot.notify_groups(custom_groups)
