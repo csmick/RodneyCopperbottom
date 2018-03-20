@@ -129,7 +129,7 @@ class GroupmeBot(object):
         action = args[0] if args else None
         if action:
             if action == 'create':
-                group_name = args[1] if not args[1].startswith('@') else None
+                group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
                 if not group_name:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
