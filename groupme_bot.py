@@ -48,6 +48,10 @@ class GroupmeBot(object):
         for member in members:
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', member['user_id'], member['nickname']))
 
+        # query table to ensure all rows were added
+        cur.execute('SELECT * FROM groups;')
+        print(cur.fetchall())
+
         # make db changes persistent
         conn.commit()
 
