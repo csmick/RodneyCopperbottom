@@ -77,7 +77,7 @@ class GroupmeBot(object):
         # query database for group members
         conn = psycopg2.connect(self.database_url, sslmode='require')
         cur = conn.cursor()
-        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', groups)
+        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (groups,))
         members = cur.fetchall()
         print(members)
         cur.close()
