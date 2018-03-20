@@ -83,16 +83,7 @@ class GroupmeBot(object):
         print(members)
         cur.close()
         conn.close()
-'''
-        uids = set()
-        nicknames = set()
-        message_text = ''
-        for nickname in nicknames:
-            message_text += ('@' + nickname + ' ')
-        message = self.Message(message_text[:-1])
-        message.mention(uids)
-        self.send_message(message)
-'''
+
     def quotes_callback(self, args):
         topic = args[0] if args else None
         speaker = args[1] if 1 < len(args) else None
