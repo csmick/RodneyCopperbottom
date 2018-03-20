@@ -16,12 +16,13 @@ class GroupmeBot(object):
         def mention(self, uids):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
 
-    def __init__(self, bot_id, group_id, auth_token):
+    def __init__(self, bot_id, group_id, auth_token, database_url):
         self.bot_id = bot_id
         self.group_id = group_id
-        self.auth_token = auth_token
-        self.POST_URL = 'https://api.groupme.com/v3/bots/post'
-        self.GROUP_URL = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
+        self.auth = {'token':auth_token}
+        self.database_url = database_url
+        self.post_url = 'https://api.groupme.com/v3/bots/post'
+        self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'quotes':self.quotes_callback}
         self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
@@ -29,6 +30,31 @@ class GroupmeBot(object):
             for line in f:
                 berate = line.strip()
                 self.spammer_berates.append(berate)
+        self.init_db()
+
+    def init_db(self):
+        # connect to database
+        conn = psycopg2.connect(self.database_url, sslmode='require')
+
+        # create cursor for database operations
+        cur = conn.cursor()
+
+        # create groups table
+        cur.execute("CREATE TABLE IF NOT EXISTS groups (group_name varchar, uid varchar, username varchar(64), PRIMARY KEY(group_name, uid));")
+
+        # add 'everyone' group
+        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
+        for member in members:
+            cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', member['user_id'], member['nickname']))
+
+        # make db changes persistent
+        conn.commit()
+
+        # close cursor
+        cur.close()
+
+        # close database connection
+        conn.close()
 
     def is_command(self, m):
         return m.startswith('!')
@@ -40,11 +66,10 @@ class GroupmeBot(object):
 
     def send_message(self, m):
         m.bot_id = self.bot_id
-        requests.post(self.POST_URL, json=vars(m))
+        requests.post(self.post_url, json=vars(m))
 
     def notify_all(self, sender_id, notify_muted=True):
-        auth = {'token':self.auth_token}
-        members = requests.get(self.GROUP_URL, params=auth).json()['response']['members']
+        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
         uids = []
         nicknames = []
         for member in members:
