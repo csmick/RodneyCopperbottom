@@ -50,8 +50,14 @@ def groupme_callback():
             first_uid, first_timestamp = timestamped_uids[0]
             if uid == first_uid:
                 timestamped_uids.append((uid, timestamp))
-                if len(timestamped_uids) >= 3:
+                if len(timestamped_uids) >= 2:
                     time = timestamp - first_timestamp
+                    if time < 10:
+                        spammer = json_body['name']
+                        groupme_bot.spammer_berate(spammer, uid)
+                        timestamped_uids.clear()
+                elif len(timestamped_uids) >= 3:
+                    time = timestamp - first_timestamp))
                     if time < 30:
                         spammer = json_body['name']
                         groupme_bot.spammer_berate(spammer, uid)
