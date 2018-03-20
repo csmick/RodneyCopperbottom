@@ -13,9 +13,10 @@ app = Flask(__name__)
 BOT_ID = os.environ['BOT_ID']
 GROUP_ID = os.environ['GROUP_ID']
 AUTH_TOKEN = os.environ['AUTH_TOKEN']
+DATABASE_URL = os.environ['DATABASE_URL']
 
 # instantiate chat bots
-groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN)
+groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN, DATABASE_URL)
 
 @app.route("/")
 def hello():
