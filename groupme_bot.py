@@ -3,6 +3,7 @@
 import psycopg2
 import requests
 import shlex
+from groups import GroupService
 from random import randrange
 from quotes import QuoteService
 
@@ -50,10 +51,7 @@ class GroupmeBot(object):
         members = requests.get(self.group_url, params=self.auth).json()['response']['members']
         for member in members:
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', member['user_id'], member['nickname']))
-
-        # query table to ensure all rows were added
-        cur.execute('SELECT * FROM groups;')
-        print(cur.fetchall())
+        self.groups = ['everyone']
 
         # make db changes persistent
         conn.commit()
@@ -76,21 +74,25 @@ class GroupmeBot(object):
         m.bot_id = self.bot_id
         requests.post(self.post_url, json=vars(m))
 
-    def notify_all(self, sender_id, notify_muted=True):
-        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
-        uids = []
-        nicknames = []
-        for member in members:
-            if member['user_id'] != sender_id and (notify_muted or member['muted'] == False):
-                uids.append(member['user_id'])
-                nicknames.append(member['nickname'])
+    def notify_groups(self, groups):
+        # query database for group members
+        conn = psycopg2.connect(self.database_url, sslmode='require')
+        cur = conn.cursor()
+        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', groups)
+        members = cur.fetchall()
+        print(members)
+        cur.close()
+        conn.close()
+'''
+        uids = set()
+        nicknames = set()
         message_text = ''
         for nickname in nicknames:
             message_text += ('@' + nickname + ' ')
         message = self.Message(message_text[:-1])
         message.mention(uids)
         self.send_message(message)
-
+'''
     def quotes_callback(self, args):
         topic = args[0] if args else None
         speaker = args[1] if 1 < len(args) else None
