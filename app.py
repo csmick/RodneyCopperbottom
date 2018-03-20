@@ -44,7 +44,6 @@ def groupme_callback():
         mentions = MENTION_PATTERN.findall(message)
         if(mentions):
             custom_groups = tuple(filter(lambda x: x in groupme_bot.groups, map(lambda x: x[1:], mentions)))
-            print(custom_groups)
             groupme_bot.notify_groups(custom_groups)
 
         if not timestamped_uids:

@@ -74,12 +74,21 @@ class GroupmeBot(object):
         requests.post(self.post_url, json=vars(m))
 
     def notify_groups(self, groups):
-        # query database for group members
         conn = psycopg2.connect(self.database_url, sslmode='require')
         cur = conn.cursor()
         cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (groups,))
-        members = cur.fetchall()
-        print(members)
+        members = set(cur.fetchall())
+        uids = []
+        nicknames = []
+        for member in members:
+            uids.append(member[0])
+            nicknames.append(member[1])
+        message_text = ''
+        for nickname in nicknames:
+            message_text += ('@' + nickname + ' ')
+        message = self.Message(message_text[:-1])
+        message.mention(uids)
+        self.send_message(message)
         cur.close()
         conn.close()
 
