@@ -134,7 +134,7 @@ class GroupmeBot(object):
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
                     return
-                uids = []
+                uids = [uid]
                 for a in attachments:
                     if a['type'] == 'mentions':
                         uids = a['user_ids']
