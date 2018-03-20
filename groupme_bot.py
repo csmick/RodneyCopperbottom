@@ -109,7 +109,7 @@ class GroupmeBot(object):
     def notify_groups(self, groups):
         conn = psycopg2.connect(self.database_url, sslmode='require')
         cur = conn.cursor()
-        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (groups,))
+        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (self.groups,))
         members = set(cur.fetchall())
         uids = []
         nicknames = []
@@ -126,10 +126,11 @@ class GroupmeBot(object):
         conn.close()
 
     def groups_callback(self, args, attachments):
+        print(attachments)
         action = args[0] if args else None
         if action:
             if action == 'create':
-                group_name = args[1] if not args[1].startswith('@') else None
+                group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
                 if not group_name:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
@@ -151,4 +152,4 @@ class GroupmeBot(object):
     def create_group(self, group_name, uids):
         message = self.Message('Creating group {} with {} members.'.format(group_name, len(uids)))
         self.send_message(message)
-        
+
