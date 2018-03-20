@@ -35,7 +35,7 @@ def groupme_callback():
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
                 attachments = json_body['attachments'] if 'attachments' in json_body.keys() else []
-                groupme_bot.functions[command](args, attachments)
+                groupme_bot.functions[command](args, attachments, uid)
 
         # check for custom group mentions
         mentions = groupme_bot.mention_pattern.findall(message)

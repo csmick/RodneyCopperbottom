@@ -75,7 +75,7 @@ class GroupmeBot(object):
         m.bot_id = self.bot_id
         requests.post(self.post_url, json=vars(m))
 
-    def quotes_callback(self, args, attachments):
+    def quotes_callback(self, args, attachments, uid):
         topic = args[0] if args else None
         speaker = args[1] if len(args) > 1 else None
         if topic in self.quote_service.list_topics():
@@ -125,8 +125,7 @@ class GroupmeBot(object):
         cur.close()
         conn.close()
 
-    def groups_callback(self, args, attachments):
-        print(attachments)
+    def groups_callback(self, args, attachments, uid):
         action = args[0] if args else None
         if action:
             if action == 'create':
@@ -137,9 +136,10 @@ class GroupmeBot(object):
                     return
                 uids = []
                 for a in attachments:
-                    if a['type'] == 'mention':
+                    if a['type'] == 'mentions':
                         uids = a['user_ids']
                 if uids:
+                    uids.append(uid)
                     self.create_group(group_name, uids)
                 else:
                     message = self.Message('Please specify the members of {}.'.format(group_name))
@@ -150,6 +150,6 @@ class GroupmeBot(object):
             self.send_message(message)
 
     def create_group(self, group_name, uids):
-        message = self.Message('Creating group {} with {} members.'.format(group_name, len(uids)))
+        message = self.Message('Creating group {} with {} member(s).'.format(group_name, len(uids)))
         self.send_message(message)
 
