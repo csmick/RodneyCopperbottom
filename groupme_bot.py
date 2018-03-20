@@ -3,7 +3,6 @@
 import psycopg2
 import requests
 import shlex
-from groups import GroupService
 from random import randrange
 from quotes import QuoteService
 
