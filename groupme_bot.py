@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import psycopg2
+import re
 import requests
 import shlex
 from random import randrange
@@ -24,7 +25,7 @@ class GroupmeBot(object):
         self.database_url = database_url
         self.post_url = 'https://api.groupme.com/v3/bots/post'
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
-        self.functions = {'quotes':self.quotes_callback}
+        self.functions = {'quotes':self.quotes_callback, 'groups':self.groups_callback}
         self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
         with open('./data/spammer_berates.csv') as f:
@@ -32,6 +33,7 @@ class GroupmeBot(object):
                 berate = line.strip()
                 self.spammer_berates.append(berate)
         self.init_db()
+        self.mention_pattern = re.compile('@\w+')
 
     def init_db(self):
         # connect to database
@@ -73,6 +75,37 @@ class GroupmeBot(object):
         m.bot_id = self.bot_id
         requests.post(self.post_url, json=vars(m))
 
+    def quotes_callback(self, args, attachments):
+        topic = args[0] if args else None
+        speaker = args[1] if len(args) > 1 else None
+        if topic in self.quote_service.list_topics():
+            if speaker:
+                if speaker not in self.quote_service.list_speakers(topic):
+                    message = self.Message('Available speakers: {}'.format(', '.join(map(str, sorted(self.quote_service.list_speakers(topic))))))
+                    self.send_message(message)
+                    return
+            else:
+                speakers = self.quote_service.list_speakers(topic)
+                speaker_index = randrange(0, len(speakers))
+                speaker = speakers[speaker_index]
+        else:
+            message = self.Message('Available topics: {}'.format(', '.join(map(str, sorted(self.quote_service.list_topics())))))
+            self.send_message(message)
+            return
+        speaker, quote = self.quote_service.get_quote(topic, speaker)
+        message = self.Message('{} -{}'.format(quote, speaker))
+        self.send_message(message)
+ 
+    def spammer_berate(self, spammer, uid):
+        berate_index = randrange(0, len(self.spammer_berates))
+        berate = self.spammer_berates[berate_index]
+        message_text = '@' + spammer + ' ' + berate
+        message = self.Message(message_text)
+        uids = []
+        uids.append(uid)
+        message.mention(uids)
+        self.send_message(message)
+
     def notify_groups(self, groups):
         conn = psycopg2.connect(self.database_url, sslmode='require')
         cur = conn.cursor()
@@ -92,33 +125,30 @@ class GroupmeBot(object):
         cur.close()
         conn.close()
 
-    def quotes_callback(self, args):
-        topic = args[0] if args else None
-        speaker = args[1] if 1 < len(args) else None
-        if topic in self.quote_service.list_topics():
-            if speaker:
-                if speaker not in self.quote_service.list_speakers(topic):
-                    message = self.Message('Available speakers: {}'.format(', '.join(map(str, sorted(self.quote_service.list_speakers(topic))))))
+    def groups_callback(self, args, attachments):
+        action = args[0] if args else None
+        if action:
+            if action == 'create':
+                group_name = args[1] if not args[1].startswith('@') else None
+                if not group_name:
+                    message = self.Message('Please specify a group name.')
                     self.send_message(message)
                     return
-            else:
-                speakers = self.quote_service.list_speakers(topic)
-                speaker_index = randrange(0, len(speakers))
-                speaker = speakers[speaker_index]
+                uids = []
+                for a in attachments:
+                    if a['type'] == 'mention':
+                        uids = a['user_ids']
+                if uids:
+                    self.create_group(group_name, uids)
+                else:
+                    message = self.Message('Please specify the members of {}.'.format(group_name))
+                    self.send_message(message)
+                    return
         else:
-            message = self.Message('Available topics: {}'.format(', '.join(map(str, sorted(self.quote_service.list_topics())))))
+            message = self.Message('Available actions: create, create, delete, add, remove, list')
             self.send_message(message)
-            return
-        speaker, quote = self.quote_service.get_quote(topic, speaker)
-        message = self.Message('{} -{}'.format(quote, speaker))
-        self.send_message(message) 
- 
-    def spammer_berate(self, spammer, uid):
-        berate_index = randrange(0, len(self.spammer_berates))
-        berate = self.spammer_berates[berate_index]
-        message_text = '@' + spammer + ' ' + berate
-        message = self.Message(message_text)
-        uids = []
-        uids.append(uid)
-        message.mention(uids)
+
+    def create_group(self, group_name, uids):
+        message = self.Message('Creating group {} with {} members.'.format(group_name, len(uids)))
         self.send_message(message)
+        
