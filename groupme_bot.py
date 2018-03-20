@@ -41,12 +41,19 @@ class GroupmeBot(object):
         cur = conn.cursor()
 
         # create groups table
-        cur.execute("CREATE TABLE IF NOT EXISTS groups (group_name varchar, uid varchar, username varchar(64), PRIMARY KEY(group_name, uid));")
+        try:
+            cur.execute("CREATE TABLE IF NOT EXISTS groups (group_name varchar, uid varchar, username varchar(64), PRIMARY KEY(group_name, uid));")
+        except psycopg2.IntegrityError:
+            pass
 
         # add 'everyone' group
         members = requests.get(self.group_url, params=self.auth).json()['response']['members']
         for member in members:
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', member['user_id'], member['nickname']))
+
+        # query table to ensure all rows were added
+        cur.execute('SELECT * FROM groups;')
+        print(cur.fetchall())
 
         # make db changes persistent
         conn.commit()
