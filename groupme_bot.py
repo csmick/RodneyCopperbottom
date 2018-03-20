@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import psycopg2
 import requests
 import shlex
 from random import randrange
