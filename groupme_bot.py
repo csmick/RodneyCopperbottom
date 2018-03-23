@@ -26,7 +26,7 @@ class GroupmeBot(object):
         self.conn = psycopg2.connect(self.database_url, sslmode='require')
         self.post_url = 'https://api.groupme.com/v3/bots/post'
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
-        self.functions = {'quotes':self.quotes_callback, 'groups':self.groups_callback}
+        self.functions = {'quotes':self.quotes_callback, 'groups':self.subgroups_callback}
         self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
         with open('./data/spammer_berates.csv') as f:
@@ -123,7 +123,7 @@ class GroupmeBot(object):
         self.send_message(message)
         cur.close()
 
-    def groups_callback(self, args, attachments, uid):
+    def subgroups_callback(self, args, attachments, uid):
         action = args[0] if args else None
         if action:
             if action == 'create':
@@ -140,7 +140,7 @@ class GroupmeBot(object):
                 if uids:
                     uids.append(uid)
                     # create group
-                    self.create_group(group_name, uids)
+                    self.create_subgroup(group_name, uids)
                 else:
                     message = self.Message('Please specify the members of {}.'.format(group_name))
                     self.send_message(message)
@@ -157,16 +157,17 @@ class GroupmeBot(object):
     def subgroup_exists(self, group_name):
         return group_name in self.get_subgroups()
 
-    def create_group(self, group_name, uids):
+    def create_subgroup(self, group_name, uids):
         # check if group already exists
-        if subgroup_exists(group_name):
+        if self.subgroup_exists(group_name):
             message = self.Message('Group {} already exists.'.format(group_name))
             self.send_message(message)
         else:
             # insert rows into database
             cur = self.conn.cursor()
+            members = get_group_members()
             for uid in uids:
-                cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, self.members[uid]))
+                cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
             self.conn.commit()
             message = self.Message('The group "{}" has been created.'.format(group_name))
             self.send_message(message)
