@@ -23,14 +23,10 @@ class GroupmeBot(object):
         self.group_id = group_id
         self.auth = {'token':auth_token}
         self.database_url = database_url
+        self.conn = psycopg2.connect(self.database_url, sslmode='require')
         self.post_url = 'https://api.groupme.com/v3/bots/post'
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'quotes':self.quotes_callback, 'groups':self.groups_callback}
-        # store uids and nicknames of group members
-        self.members = {}
-        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
-        for member in members:
-            self.members[member['user_id']] = member['nickname']
         self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
         with open('./data/spammer_berates.csv') as f:
@@ -41,11 +37,8 @@ class GroupmeBot(object):
         self.mention_pattern = re.compile('@\w+')
 
     def init_db(self):
-        # connect to database
-        conn = psycopg2.connect(self.database_url, sslmode='require')
-
         # create cursor for database operations
-        cur = conn.cursor()
+        cur = self.conn.cursor()
 
         # create groups table
         try:
@@ -54,18 +47,14 @@ class GroupmeBot(object):
             pass
 
         # add 'everyone' group
-        for uid, nickname in self.members.items():
+        for uid, nickname in self.get_group_members().items():
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', uid, nickname))
-        self.groups = ['everyone']
 
         # make db changes persistent
-        conn.commit()
+        self.conn.commit()
 
         # close cursor
         cur.close()
-
-        # close database connection
-        conn.close()
 
     def is_command(self, m):
         return m.startswith('!')
@@ -78,6 +67,13 @@ class GroupmeBot(object):
     def send_message(self, m):
         m.bot_id = self.bot_id
         requests.post(self.post_url, json=vars(m))
+
+    def get_group_members(self):
+        members = {}
+        members_list = requests.get(self.group_url, params=self.auth).json()['response']['members']
+        for member in members_list:
+            members[member['user_id']] = member['nickname']
+        return members
 
     def quotes_callback(self, args, attachments, uid):
         topic = args[0] if args else None
@@ -111,8 +107,7 @@ class GroupmeBot(object):
         self.send_message(message)
 
     def notify_groups(self, groups):
-        conn = psycopg2.connect(self.database_url, sslmode='require')
-        cur = conn.cursor()
+        cur = self.conn.cursor()
         cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (self.groups,))
         members = set(cur.fetchall())
         uids = []
@@ -127,7 +122,6 @@ class GroupmeBot(object):
         message.mention(uids)
         self.send_message(message)
         cur.close()
-        conn.close()
 
     def groups_callback(self, args, attachments, uid):
         action = args[0] if args else None
@@ -155,26 +149,26 @@ class GroupmeBot(object):
             message = self.Message('Available actions: create, create, delete, add, remove, list')
             self.send_message(message)
 
-    def create_group(self, group_name, uids):
-        # open database connection and create cursor
-        conn = psycopg2.connect(self.database_url, sslmode='require')
-        cur = conn.cursor()
+    def get_subgroups(self):
+        cur = self.conn.cursor()
+        cur.execute('SELECT group_name FROM groups;')
+        return set(map(lambda x: x[0], cur.fetchall()))
 
+    def subgroup_exists(self, group_name):
+        return group_name in self.get_subgroups()
+
+    def create_group(self, group_name, uids):
         # check if group already exists
-        cur.execute('SELECT group_name FROM groups WHERE group_name = %s;', (group_name,))
-        if cur.fetchone():
-            # group already exists
+        if subgroup_exists(group_name):
             message = self.Message('Group {} already exists.'.format(group_name))
             self.send_message(message)
         else:
             # insert rows into database
+            cur = self.conn.cursor()
             for uid in uids:
                 cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, self.members[uid]))
-            conn.commit()
+            self.conn.commit()
             message = self.Message('The group "{}" has been created.'.format(group_name))
             self.send_message(message)
-
-        # close cursor and connection
-        cur.close()
-        conn.close()
+            cur.close()
 
