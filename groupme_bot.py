@@ -165,7 +165,7 @@ class GroupmeBot(object):
         else:
             # insert rows into database
             cur = self.conn.cursor()
-            members = get_group_members()
+            members = self.get_group_members()
             for uid in uids:
                 cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
             self.conn.commit()
