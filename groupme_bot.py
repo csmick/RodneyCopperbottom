@@ -26,6 +26,11 @@ class GroupmeBot(object):
         self.post_url = 'https://api.groupme.com/v3/bots/post'
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'quotes':self.quotes_callback, 'groups':self.groups_callback}
+        # store uids and nicknames of group members
+        self.members = {}
+        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
+        for member in members:
+            self.members[member['user_id']] = member['nickname']
         self.quote_service = QuoteService('./data/quotes')
         self.spammer_berates = list()
         with open('./data/spammer_berates.csv') as f:
@@ -49,9 +54,8 @@ class GroupmeBot(object):
             pass
 
         # add 'everyone' group
-        members = requests.get(self.group_url, params=self.auth).json()['response']['members']
-        for member in members:
-            cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', member['user_id'], member['nickname']))
+        for uid, nickname in self.members.items():
+            cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', ('everyone', uid, nickname))
         self.groups = ['everyone']
 
         # make db changes persistent
@@ -129,17 +133,19 @@ class GroupmeBot(object):
         action = args[0] if args else None
         if action:
             if action == 'create':
+                # parse create arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
                 if not group_name:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
                     return
-                uids = [uid]
+                uids = []
                 for a in attachments:
                     if a['type'] == 'mentions':
                         uids = a['user_ids']
                 if uids:
                     uids.append(uid)
+                    # create group
                     self.create_group(group_name, uids)
                 else:
                     message = self.Message('Please specify the members of {}.'.format(group_name))
@@ -150,6 +156,25 @@ class GroupmeBot(object):
             self.send_message(message)
 
     def create_group(self, group_name, uids):
-        message = self.Message('Creating group {} with {} member(s).'.format(group_name, len(uids)))
-        self.send_message(message)
+        # open database connection and create cursor
+        conn = psycopg2.connect(self.database_url, sslmode='require')
+        cur = conn.cursor()
+
+        # check if group already exists
+        cur.execute('SELECT group_name FROM groups WHERE group_name = %s;', (group_name,))
+        if cur.fetchone():
+            # group already exists
+            message = self.Message('Group {} already exists.'.format(group_name))
+            self.send_message(message)
+        else:
+            # insert rows into database
+            for uid in uids:
+                cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, self.members[uid]))
+            cur.commit()
+            message = self.Message('The group "{}" has been created.'.format(group_name))
+            self.send_message(message)
+
+        # close cursor and connection
+        cur.close()
+        conn.close()
 
