@@ -108,7 +108,7 @@ class GroupmeBot(object):
 
     def notify_groups(self, groups):
         cur = self.conn.cursor()
-        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (self.groups,))
+        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (groups,))
         members = set(cur.fetchall())
         uids = []
         nicknames = []
