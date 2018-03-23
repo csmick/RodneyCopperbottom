@@ -170,7 +170,7 @@ class GroupmeBot(object):
             # insert rows into database
             for uid in uids:
                 cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, self.members[uid]))
-            cur.commit()
+            conn.commit()
             message = self.Message('The group "{}" has been created.'.format(group_name))
             self.send_message(message)
 
