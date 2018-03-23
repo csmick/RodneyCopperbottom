@@ -144,9 +144,20 @@ class GroupmeBot(object):
                 else:
                     message = self.Message('Please specify the members of {}.'.format(group_name))
                     self.send_message(message)
-                    return
+            elif action == 'delete':
+                # parse delete arguments
+                group_name = args[1] if len(args) > 1 else None
+                if group_name:
+                    if self.subgroup_exists(group_name):
+                        self.delete_subgroup(group_name)
+                    else:
+                        message = self.Message('The group "{}" does not exist.'.format(group_name))
+                        self.send_message(message)
+                else:
+                    message = self.Message('Please specify a group name.')
+                    self.send_message(message)
         else:
-            message = self.Message('Available actions: create, create, delete, add, remove, list')
+            message = self.Message('Available actions: create, delete, add, remove, list')
             self.send_message(message)
 
     def get_subgroups(self):
@@ -160,7 +171,7 @@ class GroupmeBot(object):
     def create_subgroup(self, group_name, uids):
         # check if group already exists
         if self.subgroup_exists(group_name):
-            message = self.Message('Group {} already exists.'.format(group_name))
+            message = self.Message('The group {} already exists.'.format(group_name))
             self.send_message(message)
         else:
             # insert rows into database
@@ -173,3 +184,10 @@ class GroupmeBot(object):
             self.send_message(message)
             cur.close()
 
+    def delete_subgroup(self, group_name):
+        cur = self.conn.cursor()
+        cur.execute('DELETE FROM groups WHERE group_name = %s;', (group_name,))
+        cur.commit()
+        message = self.Message('The group "{}" has been deleted.'.format(group_name))
+        self.send_message(message)
+        cur.close()
