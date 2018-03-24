@@ -142,7 +142,7 @@ class GroupmeBot(object):
                     # create group
                     self.create_subgroup(group_name, uids)
                 else:
-                    message = self.Message('Please specify the members of {}.'.format(group_name))
+                    message = self.Message('Please specify the members of "{}".'.format(group_name))
                     self.send_message(message)
             elif action == 'delete':
                 # parse delete arguments
@@ -157,9 +157,22 @@ class GroupmeBot(object):
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
             elif action == 'list':
+                # list existing subgroups
                 groups = list(self.get_subgroups())
                 message = self.Message('Current groups: {}'.format(', '.join(map(str, sorted(groups)))))
                 self.send_message(message)
+            elif action == 'members':
+                # parse members arguments
+                group_name = args[1] if len(args) > 1 else None
+                if group_name:
+                    if subgroup_exists(group_name):
+                        self.list_subgroup_members(group_name)
+                    else:
+                        message = self.Message('The group "{}" does not exist.'.format(group_name))
+                        self.send_message(message)
+                else:
+                    message = self.Message('Please specify a group name.')
+                    self.send_message(message)
         else:
             message = self.Message('Available actions: create, delete, add, remove, list')
             self.send_message(message)
@@ -175,7 +188,7 @@ class GroupmeBot(object):
     def create_subgroup(self, group_name, uids):
         # check if group already exists
         if self.subgroup_exists(group_name):
-            message = self.Message('The group {} already exists.'.format(group_name))
+            message = self.Message('The group "{}" already exists.'.format(group_name))
             self.send_message(message)
         else:
             # insert rows into database
@@ -197,4 +210,8 @@ class GroupmeBot(object):
         cur.close()
 
     def list_subgroup_members(self, group_name):
-        pass
+        cur = self.conn.cursor()
+        cur.execute('SELECT username FROM groups WHERE group_name = %s;', (group_name,))
+        members = list(map(lambda x: x[0], cur.fetchall()))
+        message = self.Message('Members of "{}": {}'.format(group_name, ', '.join(map(str, sorted(members)))))
+        self.send_message(message)
