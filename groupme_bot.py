@@ -156,6 +156,10 @@ class GroupmeBot(object):
                 else:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
+            elif action == 'list':
+                groups = list(self.get_subgroups())
+                message = self.Message('Current groups: {}'.format(', '.join(map(str, sorted(groups)))))
+                self.send_message(message)
         else:
             message = self.Message('Available actions: create, delete, add, remove, list')
             self.send_message(message)
@@ -191,3 +195,6 @@ class GroupmeBot(object):
         message = self.Message('The group "{}" has been deleted.'.format(group_name))
         self.send_message(message)
         cur.close()
+
+    def list_subgroup_members(self, group_name):
+        pass
