@@ -128,8 +128,8 @@ class GroupmeBot(object):
         if action:
 
             # add members to a group
-            if action == 'create' or action == 'add':
-                # parse add arguments
+            if action == 'create' or action == 'add' or action = 'remove':
+                # parse arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
                 include_me = len(args) > 2 and args[2] == 'me'
 
@@ -139,8 +139,8 @@ class GroupmeBot(object):
                     self.send_message(message)
                     return
 
-                # ensure group already exists
-                if action == 'add' and not self.subgroup_exists(group_name):
+                # ensure group already exists for add and remove commands
+                if (action == 'add' or action == 'remove') and not self.subgroup_exists(group_name):
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
                     return
@@ -151,9 +151,12 @@ class GroupmeBot(object):
                     if a['type'] == 'mentions':
                         uids.extend(a['user_ids'])
                 if uids:
-                    self.add_subgroup_members(group_name, uids)
+                    if action == 'create' or action =='add':
+                        self.add_subgroup_members(group_name, uids)
+                    else:
+                        self.remove_subgroup_members(group_name, uids)
                 else:
-                    message = self.Message('Please specify group members to add.')
+                    message = self.Message('Please specify group members.')
                     self.send_message(message)
 
             # delete a group
@@ -197,6 +200,12 @@ class GroupmeBot(object):
                 else:
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message) 
+
+            #feedback for invalid action
+            else:
+                message = self.Message('No action "{}". Available actions: create, delete, add, remove, list, members'.format(action))
+                self.send_message(message)
+
         else:
             message = self.Message('Available actions: create, delete, add, remove, list, members')
             self.send_message(message)
@@ -216,6 +225,15 @@ class GroupmeBot(object):
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
         self.conn.commit()
         message = self.Message('The group "{}" has been created.'.format(group_name))
+        self.send_message(message)
+        cur.close()
+
+    def remove_subgroup_members(self, group_name, uids):
+        cur = self.conn.cursor()
+        for uid in uids:
+            cur.execute('DELETE FROM groups WHERE group_name = %s AND uid = %s;', (group_name, uid,))
+        self.conn.commit()
+        message = self.Message('The specified members have been removed from "{}".'.format(group_name))
         self.send_message(message)
         cur.close()
 
