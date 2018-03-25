@@ -131,6 +131,7 @@ class GroupmeBot(object):
             if action == 'create':
                 # parse create arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
+                include_me = len(args) > 2 and not args[2] == 'me'
 
                 # ensure group name was specified
                 if not group_name:
@@ -145,15 +146,15 @@ class GroupmeBot(object):
                     return
 
                 # ensure group members were specified
-                uids = []
+                uids = [uid] if include_me else []
                 for a in attachments:
                     if a['type'] == 'mentions':
-                        uids = a['user_ids']
-                if uids:
+                        uids.extend(a['user_ids'])
+                if len(uids) > 1:
                     uids.append(uid)
                     self.create_subgroup(group_name, uids)
                 else:
-                    message = self.Message('Please specify the members of "{}".'.format(group_name))
+                    message = self.Message('Please specify at least two group members.')
                     self.send_message(message)
 
             # delete a group
