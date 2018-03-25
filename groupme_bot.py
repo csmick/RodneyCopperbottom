@@ -127,9 +127,9 @@ class GroupmeBot(object):
         action = args[0] if args else None
         if action:
 
-            # create a group
-            if action == 'create':
-                # parse create arguments
+            # add members to a group
+            if action == 'create' or action == 'add':
+                # parse add arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
                 include_me = len(args) > 2 and args[2] == 'me'
 
@@ -139,9 +139,9 @@ class GroupmeBot(object):
                     self.send_message(message)
                     return
 
-                # ensure group doesn't already exist
-                if self.subgroup_exists(group_name):
-                    message = self.Message('The group "{}" already exists.'.format(group_name))
+                # ensure group already exists
+                if action == 'add' and not self.subgroup_exists(group_name):
+                    message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
                     return
 
@@ -150,11 +150,10 @@ class GroupmeBot(object):
                 for a in attachments:
                     if a['type'] == 'mentions':
                         uids.extend(a['user_ids'])
-                if len(uids) > 1:
-                    uids.append(uid)
-                    self.create_subgroup(group_name, uids)
+                if uids:
+                    self.add_subgroup_members(group_name, uids)
                 else:
-                    message = self.Message('Please specify at least two group members.')
+                    message = self.Message('Please specify group members to add.')
                     self.send_message(message)
 
             # delete a group
@@ -197,7 +196,7 @@ class GroupmeBot(object):
                     self.list_subgroup_members(group_name)
                 else:
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
-                    self.send_message(message)
+                    self.send_message(message) 
         else:
             message = self.Message('Available actions: create, delete, add, remove, list, members')
             self.send_message(message)
@@ -210,7 +209,7 @@ class GroupmeBot(object):
     def subgroup_exists(self, group_name):
         return group_name in self.get_subgroups()
 
-    def create_subgroup(self, group_name, uids):
+    def add_subgroup_members(self, group_name, uids):
         cur = self.conn.cursor()
         members = self.get_group_members()
         for uid in uids:
