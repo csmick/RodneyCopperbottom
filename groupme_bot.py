@@ -131,7 +131,7 @@ class GroupmeBot(object):
             if action == 'create':
                 # parse create arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
-                include_me = len(args) > 2 and not args[2] == 'me'
+                include_me = len(args) > 2 and args[2] == 'me'
 
                 # ensure group name was specified
                 if not group_name:
