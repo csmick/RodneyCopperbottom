@@ -144,6 +144,11 @@ class GroupmeBot(object):
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
                     return
+                # ensure group doesn't already exist for create command
+                elif action == 'create' and self.subgroup.exists(group_name):
+                    message = self.Message('The group "{}" already exists.'.format(group_name))
+                    self.send_message(message)
+                    return
 
                 # ensure group members were specified
                 uids = [uid] if include_me else []
@@ -201,7 +206,7 @@ class GroupmeBot(object):
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message) 
 
-            #feedback for invalid action
+            # feedback for invalid action
             else:
                 message = self.Message('No action "{}". Available actions: create, delete, add, remove, list, members'.format(action))
                 self.send_message(message)
@@ -224,7 +229,7 @@ class GroupmeBot(object):
         for uid in uids:
             cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
         self.conn.commit()
-        message = self.Message('The group "{}" has been created.'.format(group_name))
+        message = self.Message('The specified members have been added to "{}".'.format(group_name))
         self.send_message(message)
         cur.close()
 
