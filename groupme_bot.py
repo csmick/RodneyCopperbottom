@@ -144,8 +144,9 @@ class GroupmeBot(object):
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
                     return
+
                 # ensure group doesn't already exist for create command
-                elif action == 'create' and self.subgroup.exists(group_name):
+                elif action == 'create' and self.subgroup_exists(group_name):
                     message = self.Message('The group "{}" already exists.'.format(group_name))
                     self.send_message(message)
                     return
