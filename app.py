@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 from collections import deque
 from groupme_bot import GroupmeBot
@@ -13,9 +15,10 @@ app = Flask(__name__)
 BOT_ID = os.environ['BOT_ID']
 GROUP_ID = os.environ['GROUP_ID']
 AUTH_TOKEN = os.environ['AUTH_TOKEN']
+DATABASE_URL = os.environ['DATABASE_URL']
 
 # instantiate chat bots
-groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN)
+groupme_bot = GroupmeBot(BOT_ID, GROUP_ID, AUTH_TOKEN, DATABASE_URL)
 
 @app.route("/")
 def hello():
@@ -31,11 +34,15 @@ def groupme_callback():
         if groupme_bot.is_command(message):
             command, args = groupme_bot.parse_message(message)
             if command in groupme_bot.functions.keys():
-                groupme_bot.functions[command](args)
-        if "@everyone" in message:
-            groupme_bot.notify_all(json_body['sender_id'])
-        elif "@unmuted" in message:
-            groupme_bot.notify_all(json_body['sender_id'], notify_muted=False)
+                attachments = json_body['attachments'] if 'attachments' in json_body.keys() else []
+                groupme_bot.functions[command](args, attachments, uid)
+
+        # check for custom group mentions
+        mentions = groupme_bot.mention_pattern.findall(message)
+        if(mentions):
+            custom_groups = tuple(filter(lambda x: x in groupme_bot.get_subgroups(), map(lambda x: x[1:], mentions)))
+            if(custom_groups):
+                groupme_bot.notify_groups(custom_groups)
 
         if not timestamped_uids:
             timestamped_uids.append((uid, timestamp))
