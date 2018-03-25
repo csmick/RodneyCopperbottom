@@ -165,7 +165,7 @@ class GroupmeBot(object):
                 # parse members arguments
                 group_name = args[1] if len(args) > 1 else None
                 if group_name:
-                    if subgroup_exists(group_name):
+                    if self.subgroup_exists(group_name):
                         self.list_subgroup_members(group_name)
                     else:
                         message = self.Message('The group "{}" does not exist.'.format(group_name))
@@ -174,7 +174,7 @@ class GroupmeBot(object):
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
         else:
-            message = self.Message('Available actions: create, delete, add, remove, list')
+            message = self.Message('Available actions: create, delete, add, remove, list, members')
             self.send_message(message)
 
     def get_subgroups(self):
