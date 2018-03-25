@@ -126,52 +126,76 @@ class GroupmeBot(object):
     def subgroups_callback(self, args, attachments, uid):
         action = args[0] if args else None
         if action:
+
+            # create a group
             if action == 'create':
                 # parse create arguments
                 group_name = args[1] if len(args) > 1 and not args[1].startswith('@') else None
+
+                # ensure group name was specified
                 if not group_name:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
                     return
+
+                # ensure group doesn't already exist
+                if self.subgroup_exists(group_name):
+                    message = self.Message('The group "{}" already exists.'.format(group_name))
+                    self.send_message(message)
+                    return
+
+                # ensure group members were specified
                 uids = []
                 for a in attachments:
                     if a['type'] == 'mentions':
                         uids = a['user_ids']
                 if uids:
                     uids.append(uid)
-                    # create group
                     self.create_subgroup(group_name, uids)
                 else:
                     message = self.Message('Please specify the members of "{}".'.format(group_name))
                     self.send_message(message)
+
+            # delete a group
             elif action == 'delete':
                 # parse delete arguments
                 group_name = args[1] if len(args) > 1 else None
-                if group_name:
-                    if self.subgroup_exists(group_name):
-                        self.delete_subgroup(group_name)
-                    else:
-                        message = self.Message('The group "{}" does not exist.'.format(group_name))
-                        self.send_message(message)
-                else:
+
+                # ensure group name was specified
+                if not group_name:
                     message = self.Message('Please specify a group name.')
                     self.send_message(message)
+                    return
+
+                # ensure group already exists
+                if self.subgroup_exists(group_name):
+                    self.delete_subgroup(group_name)
+                else:
+                    message = self.Message('The group "{}" does not exist.'.format(group_name))
+                    self.send_message(message)
+
+            # list existing groups
             elif action == 'list':
-                # list existing subgroups
                 groups = list(self.get_subgroups())
                 message = self.Message('Current groups: {}'.format(', '.join(map(str, sorted(groups)))))
                 self.send_message(message)
+
+            # list the members of a single group
             elif action == 'members':
                 # parse members arguments
                 group_name = args[1] if len(args) > 1 else None
-                if group_name:
-                    if self.subgroup_exists(group_name):
-                        self.list_subgroup_members(group_name)
-                    else:
-                        message = self.Message('The group "{}" does not exist.'.format(group_name))
-                        self.send_message(message)
-                else:
+
+                # ensure group name was specified
+                if not group_name:
                     message = self.Message('Please specify a group name.')
+                    self.send_message(message)
+                    return
+
+                # ensure group already exists
+                if self.subgroup_exists(group_name):
+                    self.list_subgroup_members(group_name)
+                else:
+                    message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
         else:
             message = self.Message('Available actions: create, delete, add, remove, list, members')
@@ -186,20 +210,14 @@ class GroupmeBot(object):
         return group_name in self.get_subgroups()
 
     def create_subgroup(self, group_name, uids):
-        # check if group already exists
-        if self.subgroup_exists(group_name):
-            message = self.Message('The group "{}" already exists.'.format(group_name))
-            self.send_message(message)
-        else:
-            # insert rows into database
-            cur = self.conn.cursor()
-            members = self.get_group_members()
-            for uid in uids:
-                cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
-            self.conn.commit()
-            message = self.Message('The group "{}" has been created.'.format(group_name))
-            self.send_message(message)
-            cur.close()
+        cur = self.conn.cursor()
+        members = self.get_group_members()
+        for uid in uids:
+            cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
+        self.conn.commit()
+        message = self.Message('The group "{}" has been created.'.format(group_name))
+        self.send_message(message)
+        cur.close()
 
     def delete_subgroup(self, group_name):
         cur = self.conn.cursor()
