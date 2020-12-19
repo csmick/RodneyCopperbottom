@@ -28,11 +28,6 @@ class GroupmeBot(object):
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'quotes':self.quotes_callback, 'groups':self.subgroups_callback}
         self.quote_service = QuoteService('./data/quotes')
-        self.spammer_berates = list()
-        with open('./data/spammer_berates.csv') as f:
-            for line in f:
-                berate = line.strip()
-                self.spammer_berates.append(berate)
         self.init_db()
         self.mention_pattern = re.compile('@\w+')
 
@@ -94,16 +89,6 @@ class GroupmeBot(object):
             return
         speaker, quote = self.quote_service.get_quote(topic, speaker)
         message = self.Message('{} -{}'.format(quote, speaker))
-        self.send_message(message)
- 
-    def spammer_berate(self, spammer, uid):
-        berate_index = randrange(0, len(self.spammer_berates))
-        berate = self.spammer_berates[berate_index]
-        message_text = '@' + spammer + ' ' + berate
-        message = self.Message(message_text)
-        uids = []
-        uids.append(uid)
-        message.mention(uids)
         self.send_message(message)
 
     def notify_groups(self, groups):
@@ -205,7 +190,7 @@ class GroupmeBot(object):
                     self.list_subgroup_members(group_name)
                 else:
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
-                    self.send_message(message) 
+                    self.send_message(message)
 
             # feedback for invalid action
             else:
