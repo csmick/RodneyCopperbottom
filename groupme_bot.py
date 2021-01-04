@@ -4,6 +4,8 @@ import psycopg2
 import re
 import requests
 import shlex
+
+from database.database_container import DatabaseContainer
 from random import randrange
 from quotes import QuoteService
 
@@ -18,12 +20,11 @@ class GroupmeBot(object):
         def mention(self, uids):
             self.attachments.append({'type':'mentions', 'user_ids':uids})
 
-    def __init__(self, bot_id, group_id, auth_token, database_url):
+    def __init__(self, bot_id, group_id, auth_token):
         self.bot_id = bot_id
         self.group_id = group_id
         self.auth = {'token':auth_token}
-        self.database_url = database_url
-        self.conn = psycopg2.connect(self.database_url, sslmode='require')
+        self.database_client = DatabaseContainer.client()
         self.post_url = 'https://api.groupme.com/v3/bots/post'
         self.group_url = 'https://api.groupme.com/v3/groups/{}'.format(self.group_id)
         self.functions = {'quotes':self.quotes_callback, 'groups':self.subgroups_callback}
@@ -92,9 +93,7 @@ class GroupmeBot(object):
         self.send_message(message)
 
     def notify_groups(self, groups):
-        cur = self.conn.cursor()
-        cur.execute('SELECT uid, username FROM groups WHERE group_name in %s;', (groups,))
-        members = set(cur.fetchall())
+        members = self.database_client.get_subgroup_members(groups)
         uids = []
         nicknames = []
         for member in members:
@@ -106,7 +105,6 @@ class GroupmeBot(object):
         message = self.Message(message_text[:-1])
         message.mention(uids)
         self.send_message(message)
-        cur.close()
 
     def subgroups_callback(self, args, attachments, uid):
         action = args[0] if args else None
@@ -125,13 +123,13 @@ class GroupmeBot(object):
                     return
 
                 # ensure group already exists for add and remove commands
-                if (action == 'add' or action == 'remove') and not self.subgroup_exists(group_name):
+                if (action == 'add' or action == 'remove') and not self.database_client.has_subgroup(group_name):
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
                     return
 
                 # ensure group doesn't already exist for create command
-                elif action == 'create' and self.subgroup_exists(group_name):
+                elif action == 'create' and self.database_client.has_subgroup(group_name):
                     message = self.Message('The group "{}" already exists.'.format(group_name))
                     self.send_message(message)
                     return
@@ -143,9 +141,13 @@ class GroupmeBot(object):
                         uids.extend(a['user_ids'])
                 if uids:
                     if action == 'create' or action =='add':
-                        self.add_subgroup_members(group_name, uids)
+                        self.database_client.add_subgroup_members(group_name, uids, self.get_group_members())
+                        message = self.Message('The specified members have been added to "{}".'.format(group_name))
+                        self.send_message(message)
                     else:
-                        self.remove_subgroup_members(group_name, uids)
+                        self.database_client.remove_subgroup_members(group_name, uids)
+                        message = self.Message('The specified members have been removed from "{}".'.format(group_name))
+                        self.send_message(message)
                 else:
                     message = self.Message('Please specify group members.')
                     self.send_message(message)
@@ -162,15 +164,17 @@ class GroupmeBot(object):
                     return
 
                 # ensure group already exists
-                if self.subgroup_exists(group_name):
-                    self.delete_subgroup(group_name)
+                if self.database_client.has_subgroup(group_name):
+                    self.database_client.delete_subgroup(group_name)
+                    message = self.Message('The group "{}" has been deleted.'.format(group_name))
+                    self.send_message(message)
                 else:
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
 
             # list existing groups
             elif action == 'list':
-                groups = list(self.get_subgroups())
+                groups = self.database_client.get_subgroups()
                 message = self.Message('Current groups: {}'.format(', '.join(map(str, sorted(groups)))))
                 self.send_message(message)
 
@@ -186,8 +190,10 @@ class GroupmeBot(object):
                     return
 
                 # ensure group already exists
-                if self.subgroup_exists(group_name):
-                    self.list_subgroup_members(group_name)
+                if self.database_client.has_subgroup(group_name):
+                    members = map(lambda x: x[2], self.database_client.get_subgroup_members([group_name]))
+                    message = self.Message('Members of "{}": {}'.format(group_name, ', '.join(map(str, sorted(members)))))
+                    self.send_message(message)
                 else:
                     message = self.Message('The group "{}" does not exist.'.format(group_name))
                     self.send_message(message)
@@ -200,45 +206,3 @@ class GroupmeBot(object):
         else:
             message = self.Message('Available actions: create, delete, add, remove, list, members')
             self.send_message(message)
-
-    def get_subgroups(self):
-        cur = self.conn.cursor()
-        cur.execute('SELECT group_name FROM groups;')
-        return set(map(lambda x: x[0], cur.fetchall()))
-
-    def subgroup_exists(self, group_name):
-        return group_name in self.get_subgroups()
-
-    def add_subgroup_members(self, group_name, uids):
-        cur = self.conn.cursor()
-        members = self.get_group_members()
-        for uid in uids:
-            cur.execute('INSERT INTO groups (group_name, uid, username) VALUES (%s, %s, %s) ON CONFLICT (group_name, uid) DO NOTHING;', (group_name, uid, members[uid]))
-        self.conn.commit()
-        message = self.Message('The specified members have been added to "{}".'.format(group_name))
-        self.send_message(message)
-        cur.close()
-
-    def remove_subgroup_members(self, group_name, uids):
-        cur = self.conn.cursor()
-        for uid in uids:
-            cur.execute('DELETE FROM groups WHERE group_name = %s AND uid = %s;', (group_name, uid,))
-        self.conn.commit()
-        message = self.Message('The specified members have been removed from "{}".'.format(group_name))
-        self.send_message(message)
-        cur.close()
-
-    def delete_subgroup(self, group_name):
-        cur = self.conn.cursor()
-        cur.execute('DELETE FROM groups WHERE group_name = %s;', (group_name,))
-        self.conn.commit()
-        message = self.Message('The group "{}" has been deleted.'.format(group_name))
-        self.send_message(message)
-        cur.close()
-
-    def list_subgroup_members(self, group_name):
-        cur = self.conn.cursor()
-        cur.execute('SELECT username FROM groups WHERE group_name = %s;', (group_name,))
-        members = list(map(lambda x: x[0], cur.fetchall()))
-        message = self.Message('Members of "{}": {}'.format(group_name, ', '.join(map(str, sorted(members)))))
-        self.send_message(message)
