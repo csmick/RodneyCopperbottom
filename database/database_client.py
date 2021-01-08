@@ -59,7 +59,7 @@ class DatabaseClient:
         conn = self._pool.getconn()
         cur = conn.cursor()
         cur.execute(
-            ('SELECT uid, username FROM groups WHERE group_name = ANY(%s);'),
+            'SELECT uid, username FROM groups WHERE group_name = ANY(%s);',
             (groups, ))
         members = cur.fetchall()
         cur.close()
@@ -87,7 +87,15 @@ class DatabaseClient:
 
         Returns: True if the subgroup exists, False otherwise
         """
-        return group_name in self.get_subgroups()
+        conn = self._pool.getconn()
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT EXISTS(SELECT 1 FROM groups WHERE group_name = %s);',
+            (group_name, ))
+        exists = cur.fetchone()[0]
+        cur.close()
+        self._pool.putconn(conn)
+        return exists
 
     def remove_subgroup_members(self, group_name: str,
                                 uids: List[str]) -> None:
@@ -101,7 +109,7 @@ class DatabaseClient:
         cur = conn.cursor()
         for uid in uids:
             cur.execute(
-                ('DELETE FROM groups WHERE group_name = %s AND uid = %s;'), (
+                'DELETE FROM groups WHERE group_name = %s AND uid = %s;', (
                     group_name,
                     uid,
                 ))
